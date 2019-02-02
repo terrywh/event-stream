@@ -1,32 +1,32 @@
-#include "connection.h"
+#include "http_connection.h"
 #include "config.h"
-#include "handler.h"
-#include "handler_event_stream.h"
-#include "handler_publish.h"
+#include "http_handler.h"
+#include "http_handler_event_stream.h"
+#include "http_handler_publish.h"
 
-connection::connection()
+http_connection::http_connection()
 : rr_(config::get().context)
 , rw_(config::get().context)
 , socket_(config::get().context) {
 
 }
 
-connection::~connection() {
+http_connection::~http_connection() {
 
 }
 
 
-void connection::close() {
+void http_connection::close() {
 	if(closed_) return;
 	closed_ = true;
 	socket_.close();
 }
 
-void connection::run(coroutine_handler yield) {
+void http_connection::run(coroutine_handler yield) {
 	boost::system::error_code  error;
-	std::shared_ptr<handler> handler;
+	std::shared_ptr<http_handler> handler;
 	do {
-		handler.reset(new class handler(shared_from_this()));
+		handler.reset(new class http_handler(shared_from_this()));
 		boost::beast::http::async_read(socket_, rbuf_, handler->req_, yield[error]);
 		if (error) {
 			if (error != boost::asio::error::operation_aborted && error != boost::asio::error::connection_reset
@@ -39,9 +39,9 @@ void connection::run(coroutine_handler yield) {
 		}
 		auto target = handler->req_.target();
 		if (target.substr(0, 7).compare("/v1/sub") == 0) {
-			handler.reset(new handler_event_stream(std::move(*handler)));
+			handler.reset(new http_handler_event_stream(std::move(*handler)));
 		} else if (target.substr(0, 7).compare("/v1/pub") == 0) {
-			handler.reset(new handler_publish(std::move(*handler)));
+			handler.reset(new http_handler_publish(std::move(*handler)));
 		} else if (target.substr(0, 11).compare("/v1/version") == 0) {
 			handler->respond_version(yield);
 			return;
@@ -52,4 +52,3 @@ void connection::run(coroutine_handler yield) {
 		handler->run(yield);
 	}while(handler->req_.keep_alive() && handler->res_.keep_alive());
 }
-

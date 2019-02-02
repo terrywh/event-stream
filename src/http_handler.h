@@ -2,12 +2,12 @@
 #include "vendor.h"
 #include "coroutine.h"
 
-class connection;
-class handler: public std::enable_shared_from_this<handler> {
+class http_connection;
+class http_handler: public std::enable_shared_from_this<http_handler> {
 public:
-    handler(std::shared_ptr<connection> cc);
-    handler(handler&& h);
-    virtual ~handler() = default;
+    http_handler(std::shared_ptr<http_connection> cc);
+    http_handler(http_handler&& h);
+    virtual ~http_handler() = default;
     virtual void run(coroutine_handler yield);
 protected:
     std::map<std::string, std::string>& parse_query();
@@ -16,7 +16,7 @@ protected:
     void respond_bad_request(coroutine_handler& yield);
     void respond_version(coroutine_handler& yield);
 
-    std::shared_ptr<connection>                                              connection_;
+    std::shared_ptr<http_connection>                                         connection_;
     boost::beast::http::request<boost::beast::http::string_body>             req_;
     std::shared_ptr<std::map<std::string, std::string>>                      query_;
     boost::beast::http::response<boost::beast::http::string_body>            res_;
@@ -28,6 +28,5 @@ protected:
 private:
     std::once_flag parse_query_once;
 
-    friend class connection;
+    friend class http_connection;
 };
-

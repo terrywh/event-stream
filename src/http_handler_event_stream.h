@@ -1,10 +1,10 @@
 #pragma once
 #include "vendor.h"
-#include "handler.h"
+#include "http_handler.h"
 
-class handler_event_stream: public handler {
+class http_handler_event_stream: public http_handler {
 public:
-    explicit handler_event_stream(handler&& h);
+    explicit http_handler_event_stream(http_handler&& h);
     virtual void run(coroutine_handler yield) override;
     void write(const std::string& evt, const std::string& dat, coroutine_handler& yield);
     void close();

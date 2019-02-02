@@ -1,13 +1,14 @@
-#include "handler_event_stream.h"
-#include "connection.h"
-#include "manager_event_stream.h"
+#include "http_handler_event_stream.h"
+#include "coroutine.h"
+#include "http_connection.h"
+#include "http_manager_event_stream.h"
 
-handler_event_stream::handler_event_stream(handler&& h)
-: handler(std::move(h)) {
+http_handler_event_stream::http_handler_event_stream(http_handler&& h)
+: http_handler(std::move(h)) {
 
 }
 
-void handler_event_stream::write(const std::string& evt, const std::string& dat, coroutine_handler& ch) {
+void http_handler_event_stream::write(const std::string& evt, const std::string& dat, coroutine_handler& ch) {
     coroutine::start(connection_->rw_, [&ch, evt, dat, this, ref = shared_from_this()] (coroutine_handler yield) {
         boost::system::error_code error;
         if(evt.empty()) {
@@ -40,15 +41,15 @@ void handler_event_stream::write(const std::string& evt, const std::string& dat,
     if(error) close();
 }
 
-void handler_event_stream::close() {
+void http_handler_event_stream::close() {
     if(close_) return;
     close_ = true;
     connection_->close();
-    manager_event_stream::get().leave(
-            std::dynamic_pointer_cast<handler_event_stream>(shared_from_this()));
+    http_manager_event_stream::get().leave(
+            std::dynamic_pointer_cast<http_handler_event_stream>(shared_from_this()));
 }
 
-void handler_event_stream::parse_topic(std::string_view topic) {
+void http_handler_event_stream::parse_topic(std::string_view topic) {
     if(topic[0] == '[') {
         // 允许使用数组形式订阅多个 TOPIC 数据
         json v;
@@ -67,7 +68,7 @@ void handler_event_stream::parse_topic(std::string_view topic) {
     }
 }
 
-void handler_event_stream::parse_event(std::string_view event) {
+void http_handler_event_stream::parse_event(std::string_view event) {
     if(event[0] == '[') {
         // 允许使用数组形式订阅多个 TOPIC 数据
         json v;
@@ -86,7 +87,7 @@ void handler_event_stream::parse_event(std::string_view event) {
     }
 }
 
-void handler_event_stream::run(coroutine_handler yield) {
+void http_handler_event_stream::run(coroutine_handler yield) {
     boost::system::error_code error;
     // 解析参数
     auto& q = parse_query();
@@ -113,8 +114,8 @@ void handler_event_stream::run(coroutine_handler yield) {
         return;
     }
     // 将会话计入管理器中
-    manager_event_stream::get().enter(
-            std::dynamic_pointer_cast<handler_event_stream>(shared_from_this()));
+    http_manager_event_stream::get().enter(
+            std::dynamic_pointer_cast<http_handler_event_stream>(shared_from_this()));
     connection_->socket_.async_wait(boost::asio::ip::tcp::socket::wait_read, yield[error]);
     close();
 }

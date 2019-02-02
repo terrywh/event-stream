@@ -1,18 +1,18 @@
-#include "server.h"
+#include "http_server.h"
 #include "config.h"
-#include "connection.h"
+#include "http_connection.h"
 #include "coroutine.h"
 
-server::server()
+http_server::http_server()
 :acptr_(config::get().context, config::get().address) {
 
 	std::cout << "(INFO) [server] listening at: " << config::get().address << std::endl;
 }
 
-void server::run(coroutine_handler yield) {
+void http_server::run(coroutine_handler yield) {
 	for(;!config::get().closing;) {
-		auto ss = std::make_shared<connection>();
+		auto ss = std::make_shared<http_connection>();
 		acptr_.async_accept(ss->socket_, yield);
-		coroutine::start(ss->rr_, std::bind(&connection::run, ss, std::placeholders::_1));
+		coroutine::start(ss->rr_, std::bind(&http_connection::run, ss, std::placeholders::_1));
 	}
 }

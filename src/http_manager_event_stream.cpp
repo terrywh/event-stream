@@ -1,14 +1,14 @@
-#include "manager_event_stream.h"
+#include "http_manager_event_stream.h"
 #include "coroutine.h"
-#include "connection.h"
-#include "handler_event_stream.h"
+#include "http_connection.h"
+#include "http_handler_event_stream.h"
 
-manager_event_stream& manager_event_stream::get() {
-	static manager_event_stream sm;
+http_manager_event_stream& http_manager_event_stream::get() {
+	static http_manager_event_stream sm;
 	return sm;
 }
 
-int manager_event_stream::write(const std::string& topic, const std::string& event, const std::string& data, coroutine_handler& yield) {
+int http_manager_event_stream::write(const std::string& topic, const std::string& event, const std::string& data, coroutine_handler& yield) {
 	auto r = topic_.find(topic);
 	if(r == topic_.end()) return 0;
 	// 不支持多行数据
@@ -26,13 +26,13 @@ int manager_event_stream::write(const std::string& topic, const std::string& eve
 	return c;
 }
 
-void manager_event_stream::enter(std::shared_ptr<handler_event_stream> es) {
+void http_manager_event_stream::enter(std::shared_ptr<http_handler_event_stream> es) {
 	for(auto i = es->topic_.begin(); i!= es->topic_.end(); ++i) {
 		topic_[*i].insert(es);
 	}
 }
 
-void manager_event_stream::leave(std::shared_ptr<handler_event_stream> es) {
+void http_manager_event_stream::leave(std::shared_ptr<http_handler_event_stream> es) {
 	for(auto i = es->topic_.begin(); i!= es->topic_.end(); ++i) {
 		auto ref = topic_[*i];
 		if(ref.erase(es) && ref.empty()) {

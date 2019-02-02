@@ -1,18 +1,18 @@
-#include "handler_publish.h"
-#include "connection.h"
-#include "manager_event_stream.h"
+#include "http_handler_publish.h"
+#include "http_connection.h"
+#include "http_manager_event_stream.h"
 
-handler_publish::handler_publish(handler&& h)
-: handler(std::move(h)) {
+http_handler_publish::http_handler_publish(http_handler&& h)
+: http_handler(std::move(h)) {
 
 }
 
-void handler_publish::run(coroutine_handler yield) {
+void http_handler_publish::run(coroutine_handler yield) {
     boost::system::error_code error;
 
     auto& q = parse_query();
-    auto  c = manager_event_stream::get().write(q["topic"], q["event"], req_.body(), yield);
-
+    auto  c = http_manager_event_stream::get().write(q["topic"], q["event"], req_.body(), yield);
+	// 响应对应实际发送目标数量
     res_.body().assign( (boost::format(R"JSON({"data":%d})JSON") % c).str() );
     res_.prepare_payload();
     boost::beast::http::async_write(connection_->socket_, res_, yield[error]);

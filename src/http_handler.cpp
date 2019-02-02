@@ -1,14 +1,14 @@
-#include "handler.h"
+#include "http_handler.h"
 #include "config.h"
-#include "connection.h"
+#include "http_connection.h"
 
-handler::handler(std::shared_ptr<connection> cc)
+http_handler::http_handler(std::shared_ptr<http_connection> cc)
 : connection_(cc)
 , res_sr_(res_){
     res_.set("X-Node", config::get().node);
 }
 
-handler::handler(handler&& h)
+http_handler::http_handler(http_handler&& h)
 : connection_(std::move(h.connection_))
 , req_(std::move(h.req_))
 , res_(std::move(h.res_))
@@ -17,12 +17,12 @@ handler::handler(handler&& h)
 
 }
 
-void handler::run(coroutine_handler yield) {
+void http_handler::run(coroutine_handler yield) {
     // 默认实现返回 404
     respond_not_found(yield);
 }
 
-std::map<std::string, std::string>& handler::parse_query() {
+std::map<std::string, std::string>& http_handler::parse_query() {
     if(!query_)
     std::call_once(parse_query_once, [this] () {
         std::string_view sv(req_.target());
@@ -32,25 +32,25 @@ std::map<std::string, std::string>& handler::parse_query() {
     return *query_;
 }
 
-void handler::respond_not_found(coroutine_handler& yield) {
+void http_handler::respond_not_found(coroutine_handler& yield) {
     res_.keep_alive(false);
     res_.result(boost::beast::http::status::not_found);
     boost::beast::http::async_write(connection_->socket_, res_, yield);
 }
 
-void handler::respond_bad_request(coroutine_handler& yield) {
+void http_handler::respond_bad_request(coroutine_handler& yield) {
     res_.keep_alive(false);
     res_.result(boost::beast::http::status::bad_request);
     boost::beast::http::async_write(connection_->socket_, res_, yield);
 }
 
-void handler::respond_version(coroutine_handler& yield) {
+void http_handler::respond_version(coroutine_handler& yield) {
     res_.body() = VERSION_STR;
     res_.prepare_payload();
     boost::beast::http::async_write(connection_->socket_, res_, yield);
 }
 
-char handler::hex2bin(char x) {
+char http_handler::hex2bin(char x) {
     if(x >= 'a' && x <= 'f') {
         return x - 'a' + 10;
     }else if(x >= 'A' && x <= 'F') {
@@ -62,7 +62,7 @@ char handler::hex2bin(char x) {
     }
 }
 
-void handler::decode_uri_inplace(std::string& str) {
+void http_handler::decode_uri_inplace(std::string& str) {
     char* data = str.data();
     auto x = 0;
     for(auto i=0;i<str.size();++i) {
@@ -81,10 +81,10 @@ void handler::decode_uri_inplace(std::string& str) {
     str.resize(x);
 }
 
-std::map<std::string, std::string> handler::parse_query(std::string_view str) {
+std::map<std::string, std::string> http_handler::parse_query(std::string_view str) {
     std::map<std::string, std::string> query;
     parser::separator_parser<std::string, std::string> parser('\0','\0','=','\0','\0','&', [&query] (std::pair<std::string, std::string> entry) {
-        handler::decode_uri_inplace(entry.second);
+        http_handler::decode_uri_inplace(entry.second);
         query.insert(std::move(entry));
     });
     parser.parse(str.data(), str.size());

@@ -2,10 +2,10 @@
 #include "vendor.h"
 #include "coroutine.h"
 
-class connection: public std::enable_shared_from_this<connection>, public boost::asio::coroutine {
+class http_connection: public std::enable_shared_from_this<http_connection>, public boost::asio::coroutine {
 public:
-	connection();
-	~connection();
+	http_connection();
+	~http_connection();
 	void close();
 	void run(coroutine_handler yield);
 public:
